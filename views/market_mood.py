@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from loaders import cached_fear_greed, cached_market
-from market_data import PHASES, MarketDataError
+from market_data import PHASES, COMPONENT_NOTES, MarketDataError
 from theme import (
     CRIMSON,
     GOLD,
@@ -20,7 +20,6 @@ from theme import (
     callout,
     page_footer,
     rating_color,
-    sidebar_controls,
     sources,
     tone,
 )
@@ -39,7 +38,6 @@ def _pct(value) -> str:
 
 
 def render() -> None:
-    sidebar_controls()
     brand_header(
         "Market mood",
         "Fear & Greed, the VIX, and which sectors have tended to lead at each stage of the business cycle.",
@@ -107,13 +105,21 @@ def _fear_section() -> None:
     components = fear["components"]
     if not components.empty:
         st.subheader("Seven components")
-        styled = components.rename(
-            columns={"component": "Component", "score": "Score", "rating": "CNN rating"}
-        )
-        st.dataframe(
-            styled.style.format({"Score": "{:.1f}"}),
-            hide_index=True,
-        )
+        st.caption("Select the info icon for CNN’s definition of that component.")
+        head = st.columns([3.4, 1, 1.6, 0.6])
+        head[0].markdown("**Component**")
+        head[1].markdown("**Score**")
+        head[2].markdown("**CNN rating**")
+        for record in components.itertuples(index=False):
+            row = st.columns([3.4, 1, 1.6, 0.6])
+            row[0].markdown(record.component)
+            row[1].markdown(f"`{record.score:.1f}`")
+            row[2].markdown(
+                f"<span class='apex-tag' style='color:{rating_color(record.rating)}'>{record.rating}</span>",
+                unsafe_allow_html=True,
+            )
+            with row[3].popover("", icon=":material/info:", help="Component definition"):
+                st.markdown(COMPONENT_NOTES.get(record.component, "CNN does not publish a separate note for this component."))
 
 
 def _load_market():
@@ -207,7 +213,7 @@ def _sector_section(market: dict) -> None:
     fig.update_layout(showlegend=False, margin=dict(l=8, r=48, t=72, b=8))
     st.plotly_chart(fig)
     note = (
-        f"Each bar is the last 63 trading days’ total return minus SPY’s return, "
+        f"Each bar is the last 63 trading days’ price return minus SPY’s return, "
         f"from Yahoo Finance closes as of {market['asof']}."
     )
     if leaders:

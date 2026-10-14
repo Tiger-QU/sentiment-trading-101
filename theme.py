@@ -254,23 +254,27 @@ def tone(text: str, color: str) -> None:
     )
 
 
-def sidebar_controls(show_expiries: bool = False) -> str:
-    """Shared ticker control. Returns the cleaned symbol."""
+def render_sidebar() -> None:
+    """One ticker box for every page. It lives outside the page scripts so navigation does not clear it."""
     st.sidebar.markdown("##### Series")
-    if "ticker" not in st.session_state:
-        st.session_state.ticker = "AAPL"
-    st.sidebar.text_input("Ticker", key="ticker")
-    ticker = (st.session_state.ticker or "").strip().upper()
-    if show_expiries:
-        if "max_expiries" not in st.session_state:
-            st.session_state.max_expiries = 8
-        st.sidebar.slider(
-            "Expiries to include (nearest N)",
-            min_value=1,
-            max_value=30,
-            key="max_expiries",
-            help="Fewer expiries load faster. Yahoo Finance is queried once per expiry.",
-        )
+    if "shared_ticker" not in st.session_state:
+        st.session_state.shared_ticker = "AAPL"
+    if not str(st.session_state.get("ticker_input", "")).strip():
+        st.session_state.ticker_input = st.session_state.shared_ticker
+
+    raw = st.sidebar.text_input("Ticker", key="ticker_input")
+    cleaned = raw.strip().upper()
+    if cleaned:
+        st.session_state.shared_ticker = cleaned
+
+    page = ""
+    try:
+        page = st.context.url or ""
+    except Exception:
+        page = ""
+    if page.rstrip("/").endswith("/options"):
+        expiry_slider()
+
     if st.sidebar.button("Refresh data", width="stretch"):
         from loaders import clear_caches
 
@@ -282,7 +286,24 @@ def sidebar_controls(show_expiries: bool = False) -> str:
         "about 15 minutes delayed. US-listed names. Daily option volume resets "
         "each session. Open interest updates once a day."
     )
-    return ticker
+
+
+def current_ticker() -> str:
+    return (st.session_state.get("shared_ticker") or "AAPL").strip().upper()
+
+
+def expiry_slider() -> int:
+    if "max_expiries" not in st.session_state:
+        st.session_state.max_expiries = 8
+    return int(
+        st.sidebar.slider(
+            "Expiries to include (nearest N)",
+            min_value=1,
+            max_value=30,
+            key="max_expiries",
+            help="Fewer expiries load faster. Yahoo Finance is queried once per expiry.",
+        )
+    )
 
 
 def apply_chart_layout(

@@ -18,10 +18,10 @@ from theme import (
     SRC_YAHOO,
     brand_header,
     callout,
+    current_ticker,
     page_footer,
     rating_color,
     sentiment_color,
-    sidebar_controls,
     sources,
     tone,
 )
@@ -46,7 +46,7 @@ def _fmt_pct(value) -> str:
 
 
 def render() -> None:
-    ticker = sidebar_controls()
+    ticker = current_ticker()
     brand_header(
         "Sentiment Dashboard",
         "A single reading of market mood, options positioning, and whether price and volume confirm it.",
@@ -122,7 +122,10 @@ def _options_block(ticker: str) -> None:
     try:
         with st.spinner(f"Loading options for {ticker}…"):
             data = cached_options(ticker, expiries)
+        try:
             log_snapshot(data)
+        except Exception:
+            pass
     except Exception as exc:
         callout(f"Options for {ticker} did not load. {exc}")
         return

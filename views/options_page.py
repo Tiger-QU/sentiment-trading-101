@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from loaders import cached_options
-from options_data import DEFAULT_HISTORY_PATH, load_history, log_snapshot
+from options_data import active_history_path, load_history, log_snapshot
 from theme import (
     CRIMSON,
     GOLD,
@@ -18,9 +18,9 @@ from theme import (
     apply_chart_layout,
     brand_header,
     callout,
+    current_ticker,
     page_footer,
     sentiment_color,
-    sidebar_controls,
     sources,
     tone,
 )
@@ -41,7 +41,7 @@ def _pct(value) -> str:
 
 
 def render() -> None:
-    ticker = sidebar_controls(show_expiries=True)
+    ticker = current_ticker()
     brand_header(
         "Options",
         "Put/call activity and whether implied volatility sits above or below recent realized volatility.",
@@ -55,7 +55,10 @@ def render() -> None:
     try:
         with st.spinner(f"Loading options for {ticker}…"):
             data = cached_options(ticker, expiries)
+        try:
             log_snapshot(data)
+        except Exception:
+            st.caption("The options reading loaded. Today’s snapshot was not added to the history file.")
     except Exception as exc:
         callout(f"Options for {ticker} did not load. {exc}")
         page_footer()
@@ -205,7 +208,7 @@ def _expiries(data: dict) -> None:
 
 def _history(data: dict) -> None:
     st.header("History from this dashboard")
-    hist = load_history(DEFAULT_HISTORY_PATH, ticker=data["ticker"])
+    hist = load_history(ticker=data["ticker"])
     if len(hist) < 2:
         callout(
             "One snapshot is stored for this ticker so far. The charts gain a point each day you open it."
@@ -242,4 +245,4 @@ def _history(data: dict) -> None:
     else:
         callout("Volatility history gains a point each day you open this ticker during conditions with usable quotes.")
 
-    st.caption(f"History file: {DEFAULT_HISTORY_PATH}")
+    st.caption(f"History file: {active_history_path()}")

@@ -38,6 +38,39 @@ CNN_COMPONENTS = [
     ("safe_haven_demand", "Safe haven demand"),
 ]
 
+# CNN's own description of how each component is scored.
+COMPONENT_NOTES = {
+    "Market momentum": (
+        "CNN compares the S&P 500 with its 125-day moving average. "
+        "A level above that average is scored toward greed. A level below it is scored toward fear."
+    ),
+    "Stock price strength": (
+        "CNN counts New York Stock Exchange shares at 52-week highs and at 52-week lows. "
+        "More highs than lows is scored toward greed."
+    ),
+    "Stock price breadth": (
+        "CNN uses the McClellan Volume Summation Index, which compares the volume of advancing "
+        "shares with the volume of declining shares. More advancing volume is scored toward greed."
+    ),
+    "Put/call options": (
+        "CNN uses the five-day average put/call ratio. More put activity relative to calls "
+        "is scored toward fear."
+    ),
+    "Market volatility (VIX)": (
+        "CNN compares the VIX with its 50-day moving average. A VIX above that average "
+        "is scored toward fear."
+    ),
+    "Junk bond demand": (
+        "CNN uses the yield spread between junk bonds and investment-grade bonds. "
+        "A wider spread, meaning investors demand more yield to hold the riskier bonds, "
+        "is scored toward fear."
+    ),
+    "Safe haven demand": (
+        "CNN compares recent stock returns with Treasury bond returns. "
+        "Bonds outperforming stocks is scored toward fear."
+    ),
+}
+
 SECTORS = [
     ("XLC", "Communication services"),
     ("XLY", "Consumer discretionary"),

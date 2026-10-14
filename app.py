@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from theme import apply_theme
+from theme import apply_theme, render_sidebar
 from views.market_mood import render as render_market
 from views.options_page import render as render_options
 from views.overview import render as render_overview
@@ -24,6 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 apply_theme()
+render_sidebar()
 
 navigation = st.navigation(
     [

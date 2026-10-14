@@ -19,14 +19,14 @@ from theme import (
     apply_chart_layout,
     brand_header,
     callout,
+    current_ticker,
     page_footer,
-    sidebar_controls,
     sources,
 )
 
 
 def render() -> None:
-    ticker = sidebar_controls()
+    ticker = current_ticker()
     brand_header(
         "Price and volume",
         "RSI locates the price extreme. Volume shows whether participation confirms the move.",

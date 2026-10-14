@@ -21,6 +21,8 @@ Requirements: pip install yfinance pandas
 from __future__ import annotations
 
 import os
+import shutil
+import tempfile
 from datetime import datetime
 
 import numpy as np
@@ -29,6 +31,7 @@ import yfinance as yf
 
 # Default location for the accumulating put/call history log.
 DEFAULT_HISTORY_PATH = os.path.join(os.path.dirname(__file__), "pcr_history.csv")
+_FALLBACK_HISTORY_PATH = os.path.join(tempfile.gettempdir(), "sentiment_dashboard_pcr_history.csv")
 
 HISTORY_COLUMNS = [
     "timestamp",
@@ -44,6 +47,35 @@ HISTORY_COLUMNS = [
     "iv",
     "hv30",
 ]
+
+
+def _writable(path: str) -> bool:
+    folder = os.path.dirname(path) or "."
+    if os.path.exists(path):
+        return os.access(path, os.W_OK)
+    return os.path.isdir(folder) and os.access(folder, os.W_OK)
+
+
+def active_history_path(path: str | None = None) -> str:
+    """History file that can be updated. Cloud hosts often ship the app folder read-only."""
+    preferred = path or DEFAULT_HISTORY_PATH
+    if _writable(preferred):
+        return preferred
+    if os.path.exists(preferred) and not os.path.exists(_FALLBACK_HISTORY_PATH):
+        try:
+            shutil.copyfile(preferred, _FALLBACK_HISTORY_PATH)
+        except OSError:
+            pass
+    return _FALLBACK_HISTORY_PATH
+
+
+def _sum_column(frame, column: str) -> float:
+    """Sum a chain column. yfinance returns None instead of an empty frame when a chain is missing."""
+    if frame is None or not hasattr(frame, "columns"):
+        return 0.0
+    if frame.empty or column not in frame.columns:
+        return 0.0
+    return float(frame[column].fillna(0).sum())
 
 
 def _safe_ratio(numerator: float, denominator: float) -> float:
@@ -209,26 +241,26 @@ def fetch_option_metrics(ticker: str, max_expiries: int | None = None) -> dict:
     for exp in expiries:
         try:
             chain = tk.option_chain(exp)
+            calls, puts = chain.calls, chain.puts
+            c_vol = _sum_column(calls, "volume")
+            p_vol = _sum_column(puts, "volume")
+            c_oi = _sum_column(calls, "openInterest")
+            p_oi = _sum_column(puts, "openInterest")
         except Exception:
             # Skip an expiry that fails to download rather than aborting.
             continue
 
-        calls, puts = chain.calls, chain.puts
-        c_vol = float(calls["volume"].fillna(0).sum()) if not calls.empty else 0.0
-        p_vol = float(puts["volume"].fillna(0).sum()) if not puts.empty else 0.0
-        c_oi = float(calls["openInterest"].fillna(0).sum()) if not calls.empty else 0.0
-        p_oi = float(puts["openInterest"].fillna(0).sum()) if not puts.empty else 0.0
-
         # Track how many contracts have a live two-sided quote. When the market
         # is closed/pre-market these collapse to zero and Yahoo's IV is unreliable.
         for leg in (calls, puts):
-            if not leg.empty:
+            if leg is not None and hasattr(leg, "empty") and not leg.empty and "bid" in leg.columns:
                 total_contracts += len(leg)
                 quoted_contracts += int(
                     ((leg["bid"].fillna(0) > 0) | (leg["ask"].fillna(0) > 0)).sum()
                 )
 
-        combined = pd.concat([calls, puts]) if not (calls.empty and puts.empty) else calls
+        frames = [leg for leg in (calls, puts) if leg is not None and hasattr(leg, "empty") and not leg.empty]
+        combined = pd.concat(frames) if frames else pd.DataFrame()
         rows.append(
             {
                 "expiry": exp,
@@ -299,7 +331,7 @@ def fetch_option_metrics(ticker: str, max_expiries: int | None = None) -> dict:
     }
 
 
-def log_snapshot(summary: dict, path: str = DEFAULT_HISTORY_PATH) -> None:
+def log_snapshot(summary: dict, path: str | None = None) -> None:
     """
     Append one snapshot row to the history CSV.
 
@@ -325,6 +357,8 @@ def log_snapshot(summary: dict, path: str = DEFAULT_HISTORY_PATH) -> None:
         "hv30": summary.get("hv_30", float("nan")),
     }
 
+    path = active_history_path(path)
+
     if os.path.exists(path):
         try:
             df = pd.read_csv(path)
@@ -346,12 +380,14 @@ def log_snapshot(summary: dict, path: str = DEFAULT_HISTORY_PATH) -> None:
     df.to_csv(path, index=False)
 
 
-def load_history(path: str = DEFAULT_HISTORY_PATH, ticker: str | None = None) -> pd.DataFrame:
+def load_history(path: str | None = None, ticker: str | None = None) -> pd.DataFrame:
     """
     Load the put/call history log, optionally filtered to one ticker.
 
     Returns an empty (correctly-columned) DataFrame when no log exists yet.
     """
+    path = active_history_path(path)
+
     if not os.path.exists(path):
         return pd.DataFrame(columns=HISTORY_COLUMNS)
 
