@@ -5,13 +5,15 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from loaders import cached_fear_greed, cached_market, cached_options, cached_price
+from economic_data import EconomicDataError
+from loaders import cached_economy, cached_fear_greed, cached_market, cached_options, cached_price
 from market_data import MarketDataError
 from options_data import log_snapshot
 from theme import (
     SRC_CBOE,
     SRC_CNN,
     SRC_FIDELITY,
+    SRC_FRED,
     SRC_PCR,
     SRC_VOLUME,
     SRC_WILDER,
@@ -49,8 +51,11 @@ def render() -> None:
     ticker = current_ticker()
     brand_header(
         "Sentiment Dashboard",
-        "A single reading of market mood, options positioning, and whether price and volume confirm it.",
+        "A single reading of the economy, market mood, options positioning, and whether price and volume confirm it.",
     )
+
+    st.header("Economic data")
+    _economy_block()
 
     st.header("Market mood")
     _market_block()
@@ -61,8 +66,28 @@ def render() -> None:
     st.header("Price and volume")
     _price_block(ticker)
 
-    sources([SRC_CNN, SRC_CBOE, SRC_FIDELITY, SRC_YAHOO, SRC_PCR, SRC_WILDER, SRC_VOLUME])
+    sources([SRC_FRED, SRC_CNN, SRC_CBOE, SRC_FIDELITY, SRC_YAHOO, SRC_PCR, SRC_WILDER, SRC_VOLUME])
     page_footer()
+
+
+def _economy_block() -> None:
+    try:
+        with st.spinner("Loading economic series…"):
+            report = cached_economy()
+    except (EconomicDataError, Exception) as exc:
+        callout(f"Economic series did not load. {exc}")
+        return
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Unemployment", _fmt_score(report["unemployment"]) + "%")
+    c1.caption(report["unemployment_date"][:7])
+    c2.metric("Payrolls, 3-month average", f"{report['nfp_3m']:+.0f}k")
+    c2.caption(report["nfp_date"][:7])
+    c3.metric("Initial claims, 4-week average", f"{report['claims_4w']:.0f}k")
+    c3.caption(report["claims_date"])
+    c4.metric("Core PCE, year-over-year", f"{report['core_pce']:.1f}%")
+    c4.caption(report["core_pce_date"][:7])
+    st.caption("Open Economic data in the sidebar for the labour, price, and growth charts.")
 
 
 def _market_block() -> None:

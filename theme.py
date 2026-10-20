@@ -283,8 +283,7 @@ def render_sidebar() -> None:
     st.sidebar.markdown("---")
     st.sidebar.caption(
         "Prices, volume, and option chains: Yahoo Finance via yfinance, "
-        "about 15 minutes delayed. US-listed names. Daily option volume resets "
-        "each session. Open interest updates once a day."
+        "about 15 minutes delayed. US-listed names. Economic series: FRED."
     )
 
 
@@ -394,6 +393,19 @@ SRC_WILDER = (
     "J. Welles Wilder Jr., <em>New Concepts in Technical Trading Systems</em> "
     "(Trend Research, 1978). RSI uses Wilder’s 14-day smoothing. "
     "Readings under 30 are oversold and readings over 70 are overbought in that framework."
+)
+SRC_FRED = (
+    'Federal Reserve Bank of St. Louis, <a href="https://fred.stlouisfed.org/">FRED</a>. '
+    "Unemployment (UNRATE) and nonfarm payrolls (PAYEMS) are Bureau of Labor Statistics series. "
+    "Farm employment (LNS12034560) is the household survey. "
+    "Initial claims (ICSA) are from the Department of Labor. "
+    "CPI (CPIAUCSL, CPILFESL) and the PPI (PPIACO) are Bureau of Labor Statistics series. "
+    "The PCE price indexes (PCEPI, PCEPILFE), real GDP (GDPC1), and the related accounts are from the Bureau of Economic Analysis. "
+    "Retail sales (RSXFS) are from the Census Bureau. "
+    'Consumer sentiment (UMCSENT) is the <a href="https://data.sca.isr.umich.edu/">University of Michigan Surveys of Consumers</a>. '
+    "The Federal Reserve’s longer-run inflation goal is 2 percent, measured by the annual change in the PCE price index "
+    '(<a href="https://www.federalreserve.gov/monetarypolicy/monetary-policy-strategy-tools-and-communications-statement-on-longer-run-goals-monetary-policy-strategy.htm">Statement on Longer-Run Goals and Monetary Policy Strategy</a>). '
+    "The 4% unemployment line, the 200,000 payroll line, and the 300,000 and 400,000 claims lines are dashboard references carried from this project’s macro report. They are not official thresholds."
 )
 SRC_VOLUME = (
     "The six-row price-and-volume reading guide was supplied for this project. "

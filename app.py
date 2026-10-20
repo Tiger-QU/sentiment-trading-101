@@ -12,6 +12,7 @@ from __future__ import annotations
 import streamlit as st
 
 from theme import apply_theme, render_sidebar
+from views.economic_page import render as render_economy
 from views.market_mood import render as render_market
 from views.options_page import render as render_options
 from views.overview import render as render_overview
@@ -29,6 +30,7 @@ render_sidebar()
 navigation = st.navigation(
     [
         st.Page(render_overview, title="Overview", url_path="overview", default=True),
+        st.Page(render_economy, title="Economic data", url_path="economic-data"),
         st.Page(render_market, title="Market mood", url_path="market-mood"),
         st.Page(render_options, title="Options", url_path="options"),
         st.Page(render_price, title="Price and volume", url_path="price-and-volume"),
